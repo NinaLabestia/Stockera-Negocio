@@ -61,12 +61,14 @@ button{font:inherit;color:inherit;cursor:pointer}
 .fm label{font-size:12px;color:var(--mu);display:block}
 .fm input{width:100%;padding:11px;border:1px solid var(--bd);border-radius:12px;background:var(--bg);color:var(--tx);font-size:16px}
 .fm .full{grid-column:1/-1}
+.hh{display:flex;justify-content:space-between;align-items:center}.bk{border:1px solid rgba(255,255,255,.5);background:rgba(255,255,255,.15);color:#fff;border-radius:99px;padding:4px 12px;font-size:12px}
+.ta{width:100%;height:110px;padding:10px;border:1px solid var(--bd);border-radius:12px;background:var(--bg);color:var(--tx);font:12px/1.3 ui-monospace,monospace;resize:none}
 .pri{border:0;background:var(--ac);color:#fff;font-weight:700;padding:13px;border-radius:12px}
 </style>
 </head>
 <body>
 <div class="hero">
-  <small>Ganancia acumulada</small>
+  <div class="hh"><small>Ganancia acumulada</small><button class="bk" onclick="backup()">Respaldo</button></div>
   <div class="big" id="tGan">$0</div>
   <div class="mini">
     <div><small>Cobrado</small><b id="tCob">$0</b></div>
@@ -109,10 +111,10 @@ function render(){
 }
 function renderSheet(){
   var sh=$('sheet'),ov=$('ov');
-  if(!(mode==='new'||openId!==null)){ov.classList.remove('on');sh.classList.remove('on');return}
+  if(!(mode==='new'||mode==='backup'||openId!==null)){ov.classList.remove('on');sh.classList.remove('on');return}
   var it=openId!==null?find(openId):null;
   if(openId!==null&&!it){closeP();return}
-  sh.innerHTML=mode==='view'?viewHTML(it):formHTML(it);
+  sh.innerHTML=mode==='backup'?bakHTML():mode==='view'?viewHTML(it):formHTML(it);
   ov.classList.add('on');sh.classList.add('on');
 }
 function viewHTML(it){
@@ -133,6 +135,24 @@ function formHTML(it){
   '<div class="full"><label>Precio de venta c/u</label><input id="fp" type="number" inputmode="decimal" step="any" min="0" required value="'+(n?'':it.price)+'"></div>'+
   (!n&&it.sold>0?'<div class="mu full">Ojo: si cambiás costo o precio, se recalculan también las ventas ya hechas.</div>':'')+
   '<button class="pri full" type="submit">Guardar</button></form>';
+}
+function backup(){mode='backup';openId=null;renderSheet()}
+function bakHTML(){
+  return '<div class="grab"></div><div class="sh"><div class="t">Respaldo de datos</div><button class="x" onclick="closeP()">✕</button></div>'+
+  '<div class="mu" style="margin-bottom:6px">1) Copiá este texto y guardalo (en notas o WhatsApp):</div>'+
+  '<textarea class="ta" id="bx" readonly onclick="this.select()">'+esc(JSON.stringify(items))+'</textarea>'+
+  '<button class="s" style="width:100%;margin:8px 0 16px" onclick="cp()">Copiar</button>'+
+  '<div class="mu" style="margin-bottom:6px">2) Para recuperar tus productos, pegá el texto acá:</div>'+
+  '<textarea class="ta" id="bi" placeholder="Pegá acá el respaldo"></textarea>'+
+  '<button class="pri" style="width:100%;margin-top:8px" onclick="imp()">Recuperar productos</button><div class="mu" id="bm" style="margin-top:8px"></div>';
+}
+function cp(){var t=$('bx');t.select();try{document.execCommand('copy');$('bm').textContent='Copiado.'}catch(e){$('bm').textContent='Mantené apretado el texto y elegí Copiar.'}}
+function imp(){
+  var a;try{a=JSON.parse($('bi').value.trim())}catch(e){a=null}
+  if(!Array.isArray(a)||!a.length||!a.every(function(x){return x&&typeof x.name==='string'&&isFinite(x.qty)&&isFinite(x.cost)&&isFinite(x.price)})){$('bm').textContent='Ese texto no es un respaldo válido.';return}
+  var ids={},add=0;items.forEach(function(x){ids[x.id]=1});
+  a.forEach(function(x,i){x.id=x.id||Date.now()+i;if(ids[x.id])return;x.sold=Math.min(+x.sold||0,x.qty);x.date=x.date||new Date().toISOString();items.push(x);ids[x.id]=1;add++});
+  save();render();$('bm').textContent=add+' productos recuperados.';
 }
 function newP(){mode='new';openId=null;renderSheet()}
 function openP(id){openId=id;mode='view';sellN=1;delC=false;renderSheet()}
