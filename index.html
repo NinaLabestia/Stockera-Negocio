@@ -99,6 +99,7 @@ button{font:inherit;color:inherit;cursor:pointer}
     <div><small>Por ganar</small><b id="tPen">$0</b></div>
   </div>
   <div class="mini2" id="pay"></div>
+  <div style="text-align:right;margin-top:8px"><button class="bk" onclick="cambiar()">Cambiar plata</button></div>
 </div>
 <div class="chips">
   <button class="chip on" data-f="all" onclick="setF('all')">Todos</button>
@@ -112,15 +113,18 @@ button{font:inherit;color:inherit;cursor:pointer}
 <div class="sheet" id="sheet"></div>
 
 <script>
-var KEY='stock_v1',items=[],flt='all',openId=null,mode='view',sellN=1,delC=false,payM='e',pre=null,warnOnce=false,delR=null,clTmp='',cliK=null,delP=null,cliList=[];
+var KEY='stock_v1',items=[],flt='all',openId=null,mode='view',sellN=1,delC=false,payM='e',pre=null,warnOnce=false,delR=null,clTmp='',cliK=null,delP=null,cliList=[],delCm=null;
 try{items=JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){items=[]}
 var RK='stock_ret_v1',ret=[];
 try{ret=JSON.parse(localStorage.getItem(RK)||'[]')}catch(e){ret=[]}
 var PK='stock_pay_v1',pagos=[];
 try{pagos=JSON.parse(localStorage.getItem(PK)||'[]')}catch(e){pagos=[]}
+var CK='stock_cam_v1',cambios=[];
+try{cambios=JSON.parse(localStorage.getItem(CK)||'[]')}catch(e){cambios=[]}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(items))}catch(e){}}
 function saveR(){try{localStorage.setItem(RK,JSON.stringify(ret))}catch(e){}}
 function savePg(){try{localStorage.setItem(PK,JSON.stringify(pagos))}catch(e){}}
+function saveCm(){try{localStorage.setItem(CK,JSON.stringify(cambios))}catch(e){}}
 function $(i){return document.getElementById(i)}
 function m(n){return '$'+(Math.round(n*100)/100).toLocaleString('es-AR')}
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
@@ -137,7 +141,8 @@ function render(){
   cl2.forEach(function(c){fs+=c.sales;fdeu+=Math.max(0,c.debt)});
   pagos.forEach(function(p){if(p.pay==='t')pt+=p.amt;else pe+=p.amt});
   $('tCob').textContent=m(cob-fs+pe+pt);
-  $('pay').innerHTML=bx('Efectivo',cob-fs-tr+pe)+bx('Transferencia',tr+pt)+'<div onclick="setF(\'fiados\')" style="cursor:pointer"><small>Te deben</small><b>'+m(fdeu)+'</b></div>';
+  var bl=balances();
+  $('pay').innerHTML=bx('Efectivo',bl.ef)+bx('Transferencia',bl.tr)+'<div onclick="setF(\'fiados\')" style="cursor:pointer"><small>Te deben</small><b>'+m(fdeu)+'</b></div>';
   var cs=document.querySelectorAll('.chip');
   for(var i=0;i<cs.length;i++){cs[i].classList.toggle('on',cs[i].getAttribute('data-f')===flt)}
   ((flt==='done'||flt==='fiados')?[]:items.filter(function(it){var d=it.sold>=it.qty;return flt==='all'||(flt==='stock'&&!d)})).forEach(function(it){
@@ -150,10 +155,10 @@ function render(){
 }
 function renderSheet(){
   var sh=$('sheet'),ov=$('ov');
-  if(!(mode==='new'||mode==='backup'||mode==='use'||mode==='cli'||openId!==null)){ov.classList.remove('on');sh.classList.remove('on');return}
+  if(!(mode==='new'||mode==='backup'||mode==='use'||mode==='cli'||mode==='cam'||openId!==null)){ov.classList.remove('on');sh.classList.remove('on');return}
   var it=openId!==null?find(openId):null;
   if(openId!==null&&!it){closeP();return}
-  sh.innerHTML=mode==='backup'?bakHTML():mode==='use'?useHTML():mode==='cli'?cliHTML():mode==='view'?viewHTML(it):formHTML(it);
+  sh.innerHTML=mode==='backup'?bakHTML():mode==='use'?useHTML():mode==='cli'?cliHTML():mode==='cam'?camHTML():mode==='view'?viewHTML(it):formHTML(it);
   ov.classList.add('on');sh.classList.add('on');
 }
 function viewHTML(it){
@@ -180,7 +185,7 @@ function backup(){mode='backup';openId=null;renderSheet()}
 function bakHTML(){
   return '<div class="grab"></div><div class="sh"><div class="t">Respaldo de datos</div><button class="x" onclick="closeP()">✕</button></div>'+
   '<div class="mu" style="margin-bottom:6px">1) Copiá este texto y guardalo (en notas o WhatsApp):</div>'+
-  '<textarea class="ta" id="bx" readonly onclick="this.select()">'+esc(JSON.stringify({items:items,ret:ret,pagos:pagos}))+'</textarea>'+
+  '<textarea class="ta" id="bx" readonly onclick="this.select()">'+esc(JSON.stringify({items:items,ret:ret,pagos:pagos,cambios:cambios}))+'</textarea>'+
   '<button class="s" style="width:100%;margin:8px 0 16px" onclick="cp()">Copiar</button>'+
   '<div class="mu" style="margin-bottom:6px">2) Para recuperar tus productos, pegá el texto acá:</div>'+
   '<textarea class="ta" id="bi" placeholder="Pegá acá el respaldo"></textarea>'+
@@ -188,8 +193,8 @@ function bakHTML(){
 }
 function cp(){var t=$('bx');t.select();try{document.execCommand('copy');$('bm').textContent='Copiado.'}catch(e){$('bm').textContent='Mantené apretado el texto y elegí Copiar.'}}
 function imp(){
-  var a,rt=[],pt2=[];try{a=JSON.parse($('bi').value.trim())}catch(e){a=null}
-  if(a&&!Array.isArray(a)&&Array.isArray(a.items)){rt=Array.isArray(a.ret)?a.ret:[];pt2=Array.isArray(a.pagos)?a.pagos:[];a=a.items}
+  var a,rt=[],pt2=[],ct2=[];try{a=JSON.parse($('bi').value.trim())}catch(e){a=null}
+  if(a&&!Array.isArray(a)&&Array.isArray(a.items)){rt=Array.isArray(a.ret)?a.ret:[];pt2=Array.isArray(a.pagos)?a.pagos:[];ct2=Array.isArray(a.cambios)?a.cambios:[];a=a.items}
   if(!Array.isArray(a)||!a.length||!a.every(function(x){return x&&typeof x.name==='string'&&isFinite(x.qty)&&isFinite(x.cost)&&isFinite(x.price)})){$('bm').textContent='Ese texto no es un respaldo válido.';return}
   var ids={},add=0;items.forEach(function(x){ids[x.id]=1});
   a.forEach(function(x,i){x.id=x.id||Date.now()+i;if(ids[x.id])return;x.sold=Math.min(+x.sold||0,x.qty);x.date=x.date||new Date().toISOString();items.push(x);ids[x.id]=1;add++});
@@ -197,7 +202,9 @@ function imp(){
   rt.forEach(function(r){if(r&&r.amt>0&&!rid[r.id]){ret.push(r);rid[r.id]=1;radd++}});
   var pid={};pagos.forEach(function(r){pid[r.id]=1});
   pt2.forEach(function(r){if(r&&r.amt>0&&r.cl&&!pid[r.id]){pagos.push(r);pid[r.id]=1;radd++}});
-  saveR();savePg();save();render();$('bm').textContent=add+' productos y '+radd+' movimientos recuperados.';
+  var cid={};cambios.forEach(function(r){cid[r.id]=1});
+  ct2.forEach(function(r){if(r&&r.amt>0&&(r.dir==='et'||r.dir==='te')&&!cid[r.id]){cambios.push(r);cid[r.id]=1;radd++}});
+  saveR();savePg();saveCm();save();render();$('bm').textContent=add+' productos y '+radd+' movimientos recuperados.';
 }
 function setPay(p){sellN=Math.max(1,parseInt($('sn').value,10)||1);if($('cl'))clTmp=$('cl').value;payM=p;renderSheet()}
 function lotes(){
@@ -224,6 +231,29 @@ function saveUse(e){
   ret.push({id:Date.now(),d:new Date().toISOString(),amt:a,why:$('uw').value.trim()||'Retiro'});saveR();closeP();render();
 }
 function delRet(id){if(delR===id){ret=ret.filter(function(r){return r.id!==id});delR=null;saveR();render()}else{delR=id;renderSheet()}}
+function balances(){
+  var cob=0,tr=0,fs=0,pe=0,pt=0,ce=0,ct=0;
+  items.forEach(function(it){cob+=it.sold*it.price;(it.log||[]).forEach(function(x){if(x.pay==='t')tr+=x.n*it.price})});
+  clients().forEach(function(c){fs+=c.sales});
+  pagos.forEach(function(p){if(p.pay==='t')pt+=p.amt;else pe+=p.amt});
+  cambios.forEach(function(c){if(c.dir==='et'){ce-=c.amt;ct+=c.amt}else{ce+=c.amt;ct-=c.amt}});
+  return {ef:cob-fs-tr+pe+ce,tr:tr+pt+ct};
+}
+function cambiar(){mode='cam';openId=null;warnOnce=false;delCm=null;renderSheet()}
+function camHTML(){
+  var b=balances();
+  var l=cambios.slice().reverse().map(function(c){return '<div class="hl"><span>'+fd(c.d)+' · '+(c.dir==='et'?'Efectivo → Transferencia':'Transferencia → Efectivo')+(c.note?' · '+esc(c.note):'')+'</span><span>'+m(c.amt)+' <button class="s" style="flex:none;padding:3px 8px;font-size:12px" onclick="delCam('+c.id+')">'+(delCm===c.id?'¿Seguro?':'Quitar')+'</button></span></div>'}).join('');
+  return '<div class="grab"></div><div class="sh"><div><div class="t">Cambiar plata</div><div class="mu">Efectivo '+m(b.ef)+' · Transferencia '+m(b.tr)+'</div></div><button class="x" onclick="closeP()">✕</button></div>'+
+  '<form class="fm" onsubmit="saveCamb(event)"><div class="full"><label>¿Qué cambiaste?</label><select id="cd" onchange="warnOnce=false"><option value="et">De Efectivo a Transferencia</option><option value="te">De Transferencia a Efectivo</option></select></div><div class="full"><label>Monto</label><input id="ca" type="number" inputmode="decimal" step="any" min="0.01" required oninput="warnOnce=false"></div><div class="full"><label>Nota (opcional)</label><input id="cn" placeholder="Ej: cambié con un conocido"></div><div class="mu full" id="cmm"></div><button class="pri full" type="submit">Guardar</button></form>'+
+  (l?'<div class="mu" style="margin:14px 0 4px">Cambios anotados</div>'+l:'');
+}
+function saveCamb(e){
+  e.preventDefault();var a=parseFloat($('ca').value),d=$('cd').value;if(!(a>0))return;
+  var b=balances(),src=d==='et'?b.ef:b.tr;
+  if(a>src+0.005&&!warnOnce){warnOnce=true;$('cmm').textContent='Ojo: en '+(d==='et'?'Efectivo':'Transferencia')+' tenés '+m(src)+', menos de lo que querés cambiar. Tocá Guardar otra vez si igual querés hacerlo.';return}
+  cambios.push({id:Date.now(),d:new Date().toISOString(),dir:d,amt:a,note:$('cn').value.trim()});saveCm();closeP();render();
+}
+function delCam(id){if(delCm===id){cambios=cambios.filter(function(r){return r.id!==id});delCm=null;saveCm();render()}else{delCm=id;renderSheet()}}
 function nk(s){return String(s||'').trim().toLowerCase()}
 function clients(){
   var mp={};
@@ -266,7 +296,7 @@ function fdm(d){var x=new Date(d);return x.getDate()+'/'+(x.getMonth()+1)}
 function rebuy(id){var it=find(id);if(!it)return;pre={name:it.name,cost:it.cost,price:it.price};mode='new';openId=null;renderSheet()}
 function newP(){mode='new';openId=null;pre=null;renderSheet()}
 function openP(id){openId=id;mode='view';sellN=1;delC=false;payM='e';clTmp='';renderSheet()}
-function closeP(){openId=null;mode='view';delC=false;sellN=1;payM='e';pre=null;warnOnce=false;delR=null;clTmp='';cliK=null;delP=null;renderSheet()}
+function closeP(){openId=null;mode='view';delC=false;sellN=1;payM='e';pre=null;warnOnce=false;delR=null;clTmp='';cliK=null;delP=null;delCm=null;renderSheet()}
 function stp(d){sellN=Math.max(1,(parseInt($('sn').value,10)||1)+d);$('sn').value=sellN}
 function sell(){
   var it=find(openId),n=Math.min(parseInt($('sn').value,10)||0,it.qty-it.sold);if(n<1)return;
