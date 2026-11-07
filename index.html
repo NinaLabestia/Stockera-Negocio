@@ -114,9 +114,44 @@ button{font:inherit;color:inherit;cursor:pointer}
 .mi.row b{display:block}
 .mi.row .mu{margin-top:2px}
 .pri{border:0;background:var(--ac);color:#fff;font-weight:700;padding:13px;border-radius:12px}
+
+#intro{position:fixed;top:0;right:0;bottom:0;left:0;width:100%;height:100%;z-index:99999;display:flex;align-items:center;justify-content:center;overflow:hidden;background:radial-gradient(ellipse 65% 45% at 50% 42%,#2b2e38 0%,#13141a 55%,#060608 100%);transition:opacity .6s ease,visibility .6s}
+#intro.out{opacity:0;visibility:hidden}
+#intro .xw{perspective:900px;-webkit-perspective:900px;transition:transform .6s cubic-bezier(.6,0,1,.6)}
+#intro.out .xw{transform:scale(1.6)}
+#intro .xt{display:flex;font-family:Montserrat,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-weight:800;font-size:64px;font-size:clamp(50px,15vw,116px);line-height:1.1;letter-spacing:-1px;-webkit-transform-style:preserve-3d;transform-style:preserve-3d;-webkit-box-reflect:below -10px linear-gradient(transparent 58%,rgba(255,255,255,.14))}
+#intro .xt span{position:relative;display:inline-block;color:transparent;opacity:0}
+#intro .xt span::before,#intro .xt span::after{content:attr(data-t);position:absolute;left:0;top:0}
+#intro .xt span::before{color:#5d6579;text-shadow:1px 1px 0 #8a93a7,2px 2px 0 #5d6579,0 0 28px rgba(255,255,255,.30),0 16px 30px rgba(0,0,0,.55)}
+#intro .xt span::after{color:transparent;-webkit-background-clip:text;background-clip:text;background-image:linear-gradient(105deg,transparent 38%,rgba(255,255,255,1) 50%,transparent 62%),linear-gradient(180deg,#f6f8fc 0%,#dde2ee 52%,#b4bccd 100%);background-size:300% 100%,100% 100%;background-repeat:no-repeat;background-position:160% 0,0 0}
+#intro .xt .xp{width:.26em}
+#intro .xg{position:absolute;left:50%;top:50%;width:90vmin;height:90vmin;margin:-45vmin 0 0 -45vmin;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.34),rgba(255,255,255,.08) 42%,transparent 68%);opacity:0}
+#intro .xl{position:absolute;left:0;right:0;top:50%;height:2px;margin-top:-1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.85) 50%,transparent);box-shadow:0 0 18px 3px rgba(255,255,255,.45);transform:scaleX(0);opacity:0}
+#intro .xs{position:absolute;width:20px;height:20px;background:#fff;clip-path:polygon(50% 0,57% 43%,100% 50%,57% 57%,50% 100%,43% 57%,0 50%,43% 43%);-webkit-filter:drop-shadow(0 0 5px rgba(255,255,255,.9));filter:drop-shadow(0 0 5px rgba(255,255,255,.9));opacity:0}
+#intro.go .xw{animation:xShake .5s ease-out 1.05s both}
+#intro.go .xt{animation:xSway 3.4s ease-in-out 1.7s infinite alternate}
+#intro.go .xt span{animation:xIn 1.15s cubic-bezier(.3,.7,.4,1) both;animation-delay:calc(var(--i)*.08s + .15s)}
+#intro.go .xt span::after{animation:xShine .9s ease-in-out both;animation-delay:calc(var(--i)*.1s + 1.5s)}
+#intro.go .xg{animation:xGlow 1.2s ease-out 1.1s both}
+#intro.go .xl{animation:xLn 1s ease-out 1.1s both}
+#intro.go .xs{animation:xSt .9s ease-out both}
+@keyframes xIn{0%{opacity:0;filter:blur(14px);transform:translateZ(-3200px) rotateX(35deg)}30%{opacity:1;filter:blur(4px)}58%{filter:blur(0);transform:translateZ(170px) rotateX(-6deg)}74%{transform:translateZ(-50px) rotateX(2deg)}88%{transform:translateZ(18px)}100%{opacity:1;filter:blur(0);transform:translateZ(0) rotateX(0)}}
+@keyframes xShine{from{background-position:160% 0,0 0}to{background-position:-60% 0,0 0}}
+@keyframes xSway{from{transform:rotateY(-6deg) rotateX(2deg)}to{transform:rotateY(6deg) rotateX(-2deg)}}
+@keyframes xShake{0%,100%{transform:translate(0,0)}25%{transform:translate(-3px,3px)}55%{transform:translate(3px,-2px)}80%{transform:translate(-1px,1px)}}
+@keyframes xGlow{0%{opacity:0;transform:scale(.4)}35%{opacity:.85}100%{opacity:0;transform:scale(1.3)}}
+@keyframes xLn{0%{opacity:0;transform:scaleX(0)}30%{opacity:1;transform:scaleX(1)}100%{opacity:0;transform:scaleX(1.12)}}
+@keyframes xSt{0%{opacity:0;transform:scale(0) rotate(0)}45%{opacity:1;transform:scale(1.2) rotate(40deg)}100%{opacity:0;transform:scale(0) rotate(80deg)}}
+@media (prefers-reduced-motion:reduce){#intro .xt span{opacity:1}#intro .xt span::after{background-position:-60% 0,0 0}#intro .xg,#intro .xl,#intro .xs{display:none}#intro.go *,#intro.go *::after{animation:none!important}}
 </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800&display=swap" rel="stylesheet">
 </head>
 <body>
+<div id="intro"><div class="xg"></div><div class="xw"><div class="xt" aria-label="Mi Stock"><span style="--i:0" data-t="M">M</span><span style="--i:1" data-t="i">i</span><span class="xp"></span><span style="--i:2" data-t="S">S</span><span style="--i:3" data-t="t">t</span><span style="--i:4" data-t="o">o</span><span style="--i:5" data-t="c">c</span><span style="--i:6" data-t="k">k</span></div></div><div class="xl"></div><i class="xs" style="left:20%;top:40%;animation-delay:1.60s"></i><i class="xs" style="left:45%;top:36%;animation-delay:1.95s"></i><i class="xs" style="left:66%;top:62%;animation-delay:2.20s"></i><i class="xs" style="left:82%;top:42%;animation-delay:2.45s"></i></div>
+<script>(function(){var i=document.getElementById('intro');if(!i)return;var r=window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches,s=false;function c(){i.classList.add('out');setTimeout(function(){if(i.parentNode)i.parentNode.removeChild(i)},700)}function go(){if(s)return;s=true;i.classList.add('go');setTimeout(c,r?1200:3700)}i.onclick=c;if(window.Promise&&document.fonts&&document.fonts.load){Promise.race([document.fonts.load('800 1em Montserrat'),new Promise(function(a){setTimeout(a,900)})]).then(go,go)}else setTimeout(go,300)})()</script>
+
 <div class="ban empty" id="ban" onclick="logoOpen()">+ Agregar el logo de tu negocio</div>
 <input type="file" accept="image/*" id="lf" style="display:none" onchange="logoPick(this)">
 <div class="hero">

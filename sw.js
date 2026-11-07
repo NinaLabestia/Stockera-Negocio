@@ -1,6 +1,6 @@
 // Mi Stock - service worker para usar la app sin conexión
 // Cada vez que cambies index.html y quieras forzar la actualización, subí el número de VERSION.
-var VERSION = 'mistock-v1';
+var VERSION = 'mistock-v5';
 var ARCHIVOS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', function (e) {
@@ -24,7 +24,16 @@ self.addEventListener('fetch', function (e) {
   var req = e.request;
   if (req.method !== 'GET') return;
   var url = new URL(req.url);
-  if (url.origin !== location.origin) return; // lo de otros sitios no se toca
+  if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
+    // la tipografía se guarda la primera vez para que funcione sin conexión
+    e.respondWith(caches.open(VERSION).then(function (c) {
+      return c.match(req).then(function (g) {
+        return g || fetch(req).then(function (r) { c.put(req, r.clone()); return r; }).catch(function () { return new Response('', { status: 504 }); });
+      });
+    }));
+    return;
+  }
+  if (url.origin !== location.origin) return; // lo demás de otros sitios no se toca
 
   e.respondWith(
     caches.open(VERSION).then(function (c) {
