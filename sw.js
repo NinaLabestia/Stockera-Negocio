@@ -1,6 +1,6 @@
 // Mi Stock - service worker para usar la app sin conexión
 // Cada vez que cambies index.html y quieras forzar la actualización, subí el número de VERSION.
-var VERSION = 'mistock-v5';
+var VERSION = 'mistock-v7';
 var ARCHIVOS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', function (e) {

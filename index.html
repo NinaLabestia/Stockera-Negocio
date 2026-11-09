@@ -209,7 +209,7 @@ function render(){
   var cl2=clients(),fs=0,fdeu=0,pe=0,pt=0;
   cl2.forEach(function(c){fs+=c.sales;fdeu+=Math.max(0,c.debt)});
   pagos.forEach(function(p){if(p.pay==='t')pt+=p.amt;else pe+=p.amt});
-  $('tCob').textContent=m(cob-fs+pe+pt);
+  var bc=balances();$('tCob').textContent=m(bc.ef+bc.tr);
   var bl=balances();
   $('pay').innerHTML=bx('Efectivo',bl.ef)+bx('Transferencia',bl.tr)+'<div onclick="setF(\'fiados\')" style="cursor:pointer"><small>Te deben</small><b>'+m(fdeu)+'</b></div>';
   var cs=document.querySelectorAll('.chip');
@@ -226,10 +226,10 @@ function renderSheet(){
   var sh=$('sheet'),ov=$('ov'),dr=$('drawer');
   if(mode==='menu'){dr.innerHTML=menuHTML();dr.classList.add('on');ov.classList.add('on');sh.classList.remove('on');return}
   dr.classList.remove('on');
-  if(!(mode==='new'||mode==='backup'||mode==='use'||mode==='cli'||mode==='cam'||mode==='aj'||mode==='logo'||mode==='menu'||openId!==null)){ov.classList.remove('on');sh.classList.remove('on');return}
+  if(!(mode==='new'||mode==='backup'||mode==='use'||mode==='cli'||mode==='cam'||mode==='aj'||mode==='logo'||mode==='prod'||mode==='menu'||openId!==null)){ov.classList.remove('on');sh.classList.remove('on');return}
   var it=openId!==null?find(openId):null;
   if(openId!==null&&!it){closeP();return}
-  sh.innerHTML=mode==='backup'?bakHTML():mode==='use'?useHTML():mode==='cli'?cliHTML():mode==='cam'?camHTML():mode==='aj'?ajHTML():mode==='logo'?logoHTML():mode==='menu'?menuHTML():mode==='view'?viewHTML(it):formHTML(it);
+  sh.innerHTML=mode==='backup'?bakHTML():mode==='use'?useHTML():mode==='cli'?cliHTML():mode==='cam'?camHTML():mode==='aj'?ajHTML():mode==='logo'?logoHTML():mode==='prod'?prodHTML():mode==='menu'?menuHTML():mode==='view'?viewHTML(it):formHTML(it);
   ov.classList.add('on');sh.classList.add('on');
 }
 function viewHTML(it){
@@ -311,7 +311,8 @@ function menuHTML(){
   return '<div class="dh"><div class="dt">Menú</div><button class="x" onclick="closeP()">✕</button></div>'+
   '<div class="mi" style="--i:0"><div><div class="mu">Ganancia acumulada</div><div class="dg">'+m(g)+'</div><div class="mu">Todo lo que ganaste desde que empezaste. No baja cuando usás ganancia.</div></div></div>'+
   '<button class="mi row" style="--i:1" onclick="ajustar()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg><div><b>Ajustar caja</b><div class="mu">Corregí el efectivo o la transferencia que figura en la app</div></div></button>'+
-  '<button class="mi row" style="--i:2" onclick="cambiar()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h12l-3-3M17 17H5l3 3"/></svg><div><b>Cambiar plata</b><div class="mu">De efectivo a transferencia, o al revés</div></div></button>';
+  '<button class="mi row" style="--i:2" onclick="cambiar()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h12l-3-3M17 17H5l3 3"/></svg><div><b>Cambiar plata</b><div class="mu">De efectivo a transferencia, o al revés</div></div></button>'+
+  '<button class="mi row" style="--i:3" onclick="prods()"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg><div><b>Mis productos</b><div class="mu">Cuánto vendiste y cuánta plata tenés de cada uno</div></div></button>';
 }
 function renderBan(){
   var b=$('ban');
@@ -428,6 +429,28 @@ function saveCobro(e){
 function delPago(id){if(delP===id){pagos=pagos.filter(function(r){return r.id!==id});delP=null;savePg();render()}else{delP=id;renderSheet()}}
 function fdm(d){var x=new Date(d);return x.getDate()+'/'+(x.getMonth()+1)}
 function rebuy(id){var it=find(id);if(!it)return;pre={name:it.name,cost:it.cost,price:it.price,from:it.id};mode='new';openId=null;renderSheet()}
+function prods(){mode='prod';openId=null;renderSheet()}
+function prodHTML(){
+  var G={},O=[],T={s:0,cb:0,gn:0},h='<div class="grab"></div><div class="sh"><div class="t">Mis productos</div><button class="x" onclick="closeP()">✕</button></div>';
+  items.forEach(function(it){var k=nk(it.name);if(!G[k]){G[k]={n:it.name,q:0,s:0,cb:0,fi:0,gn:0,lc:it.cost,lq:it.qty};O.push(G[k])}
+    var g=G[k],f=0;(it.log||[]).forEach(function(x){if(x.pay==='f')f+=x.n*(x.p||it.price)});
+    g.q+=it.qty;g.s+=it.sold;g.gn+=it.sold*(it.price-it.cost);g.fi+=f;g.cb+=it.sold*it.price-f});
+  if(!O.length)return h+'<div class="empty">Cargá productos y acá vas a ver cuánto vendiste de cada uno.</div>';
+  O.sort(function(a,b){return b.s-a.s});
+  O.forEach(function(p){T.s+=p.s;T.cb+=p.cb;T.gn+=p.gn});
+  h+='<div style="display:grid;gap:8px"><div class="lt"><div><small>Vendidas</small><b>'+T.s+' u.</b></div><div><small>Vas ganando</small><b>'+m(T.cb)+'</b></div><div><small>Ganancia</small><b class="g">'+m(T.gn)+'</b></div></div>';
+  O.forEach(function(p){
+    var need=p.lc*p.lq,ok=p.cb>=need,pct=p.q?Math.round(p.s/p.q*100):0;
+    h+='<div class="lr"><div class="r1"><b>'+esc(p.n)+'</b><span class="g">+'+m(p.gn)+'</span></div>'+
+    '<div class="mu">Vendiste '+p.s+' de '+p.q+' u. · quedan '+(p.q-p.s)+'</div>'+
+    '<div style="height:6px;border-radius:3px;background:var(--bd);overflow:hidden;margin:2px 0"><div style="height:100%;width:'+pct+'%;background:#2563eb"></div></div>'+
+    '<div class="mu">Plata en mano de este producto: <b>'+m(p.cb)+'</b></div>'+
+    (p.fi>0?'<div class="mu">En fiado: '+m(p.fi)+' (puede que ya lo hayan pagado, mirá Fiados)</div>':'')+
+    '<div class="mu">Volver a comprar '+p.lq+' u. a '+m(p.lc)+' = '+m(need)+'</div>'+
+    '<div style="font-weight:600;color:'+(ok?'var(--ok)':'#e5484d')+'">'+(ok?'Te alcanza para reponer ✓':'Te faltan '+m(need-p.cb)+' para reponer')+'</div></div>';
+  });
+  return h+'<div class="mu" style="text-align:center;padding:4px 8px">No descuenta la ganancia que ya usaste con "Usar ganancia".</div></div>';
+}
 function newP(){mode='new';openId=null;pre=null;renderSheet()}
 function openP(id){openId=id;mode='view';sellN=1;delC=false;payM='e';clTmp='';renderSheet()}
 function closeP(){openId=null;mode='view';delC=false;sellN=1;payM='e';pre=null;warnOnce=false;delR=null;clTmp='';cliK=null;delP=null;delCm=null;delJ=null;renderSheet()}
