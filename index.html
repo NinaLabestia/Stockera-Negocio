@@ -238,7 +238,7 @@ function viewHTML(it){
   return '<div class="grab"></div><div class="sh"><div><div class="t">'+esc(it.name)+'</div><div class="mu">Cargado el '+fd(it.date)+' · costo '+m(it.cost)+' · venta '+m(it.price)+'</div></div><button class="x" onclick="closeP()">✕</button></div>'+
   '<div class="tiles"><div><small>En stock</small><b>'+left+' de '+it.qty+'</b></div><div><small>Ganancia c/u</small><b>'+m(gu)+' ('+pct+')</b></div><div><small>Vendidas: '+it.sold+' · Debés tener</small><b>'+m(it.sold*it.price)+'</b></div><div><small>'+(left===0?'Ganancia total del lote':'Ganancia acumulada')+'</small><b class="g">'+m(it.sold*gu)+'</b></div></div>'+
   '<div class="seg"><button class="'+(payM==='e'?'on':'')+'" onclick="setPay(\'e\')">Efectivo</button><button class="'+(payM==='t'?'on':'')+'" onclick="setPay(\'t\')">Transferencia</button><button class="'+(payM==='f'?'on':'')+'" onclick="setPay(\'f\')">Fiado</button></div>'+(payM==='f'?'<input id="cl" list="cls" class="cin" placeholder="¿A quién se lo fiás?" value="'+esc(clTmp)+'"><datalist id="cls">'+clients().map(function(c){return '<option value="'+esc(c.name)+'">'}).join('')+'</datalist>':'')+'<div class="sell"><button class="st" onclick="stp(-1)">−</button><input id="sn" type="number" min="1" inputmode="numeric" value="'+sellN+'"><button class="st" onclick="stp(1)">+</button><button class="go" onclick="sell()"'+(left===0?' disabled':'')+'>Vendí</button></div>'+
-  (left===0&&!it.rep?'<button class="pri" style="width:100%;margin-bottom:10px" onclick="rebuy('+it.id+')">Volver a comprar</button>':'')+'<div class="row3"><button class="s" onclick="undo()">Deshacer 1</button><button class="s" onclick="mode=\'edit\';renderSheet()">Editar</button><button class="s d" onclick="del()">'+(delC?'¿Seguro?':'Borrar')+'</button></div>'+
+  (left===0&&!it.rep?'<button class="pri" style="width:100%;margin-bottom:10px" onclick="rebuy('+it.id+')">Volver a comprar</button>':'')+(left>0?'<button class="s" style="width:100%;margin-bottom:10px" onclick="reponer('+it.id+')">+ Reponer (volví a comprar)</button>':'')+'<div class="row3"><button class="s" onclick="undo()">Deshacer 1</button><button class="s" onclick="mode=\'edit\';renderSheet()">Editar</button><button class="s d" onclick="del()">'+(delC?'¿Seguro?':'Borrar')+'</button></div>'+
   (l?'<div class="mu" style="margin-bottom:4px">Historial de ventas</div>'+l:'');
 }
 function formHTML(it){
@@ -428,14 +428,15 @@ function saveCobro(e){
 }
 function delPago(id){if(delP===id){pagos=pagos.filter(function(r){return r.id!==id});delP=null;savePg();render()}else{delP=id;renderSheet()}}
 function fdm(d){var x=new Date(d);return x.getDate()+'/'+(x.getMonth()+1)}
+function reponer(id){var it=find(id);if(!it)return;pre={name:it.name,cost:it.cost,price:it.price};mode='new';openId=null;renderSheet()}
 function rebuy(id){var it=find(id);if(!it)return;pre={name:it.name,cost:it.cost,price:it.price,from:it.id};mode='new';openId=null;renderSheet()}
 function prods(){mode='prod';openId=null;renderSheet()}
 function prodHTML(){
   var G={},O=[],T={s:0,cb:0,gn:0},h='<div class="grab"></div><div class="sh"><div class="t">Mis productos</div><button class="x" onclick="closeP()">✕</button></div>';
-  items.forEach(function(it){var k=nk(it.name);if(!G[k]){G[k]={n:it.name,q:0,s:0,cb:0,fi:0,gn:0,lc:it.cost,lq:it.qty};O.push(G[k])}
+  items.forEach(function(it){if(it.rep||it.sold>=it.qty)return;var k=nk(it.name);if(!G[k]){G[k]={id:it.id,n:it.name,q:0,s:0,cb:0,fi:0,gn:0,lc:it.cost,lq:it.qty};O.push(G[k])}
     var g=G[k],f=0;(it.log||[]).forEach(function(x){if(x.pay==='f')f+=x.n*(x.p||it.price)});
     g.q+=it.qty;g.s+=it.sold;g.gn+=it.sold*(it.price-it.cost);g.fi+=f;g.cb+=it.sold*it.price-f});
-  if(!O.length)return h+'<div class="empty">Cargá productos y acá vas a ver cuánto vendiste de cada uno.</div>';
+  if(!O.length)return h+'<div class="empty">No hay productos con stock en curso. Cuando cargues o repongas uno, aparece acá; cuando se vende todo, desaparece.</div>';
   O.sort(function(a,b){return b.s-a.s});
   O.forEach(function(p){T.s+=p.s;T.cb+=p.cb;T.gn+=p.gn});
   h+='<div style="display:grid;gap:8px"><div class="lt"><div><small>Vendidas</small><b>'+T.s+' u.</b></div><div><small>Vas ganando</small><b>'+m(T.cb)+'</b></div><div><small>Ganancia</small><b class="g">'+m(T.gn)+'</b></div></div>';
@@ -447,7 +448,7 @@ function prodHTML(){
     '<div class="mu">Plata en mano de este producto: <b>'+m(p.cb)+'</b></div>'+
     (p.fi>0?'<div class="mu">En fiado: '+m(p.fi)+' (puede que ya lo hayan pagado, mirá Fiados)</div>':'')+
     '<div class="mu">Volver a comprar '+p.lq+' u. a '+m(p.lc)+' = '+m(need)+'</div>'+
-    '<div style="font-weight:600;color:'+(ok?'var(--ok)':'#e5484d')+'">'+(ok?'Te alcanza para reponer ✓':'Te faltan '+m(need-p.cb)+' para reponer')+'</div></div>';
+    '<div style="font-weight:600;color:'+(ok?'var(--ok)':'#e5484d')+'">'+(ok?'Te alcanza para reponer ✓':'Te faltan '+m(need-p.cb)+' para reponer')+'</div><button class="s" style="width:100%;margin-top:8px" onclick="reponer('+p.id+')">+ Reponer</button></div>';
   });
   return h+'<div class="mu" style="text-align:center;padding:4px 8px">No descuenta la ganancia que ya usaste con "Usar ganancia".</div></div>';
 }
